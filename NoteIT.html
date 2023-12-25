@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My experiment</title>
+    <meta charset="utf-8" />
+
+    <script src="js/webgazer/webgazer.js"></script>
+    <!--в файлике ниже содержится информация о целевых значениях для каждой мелодии-->
+    <script src="js/targets.js"></script> 
+
+    <script src="jspsych/jspsych.js"></script>
+    <script src="jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="jspsych/plugin-html-button-response.js"></script>
+    <script src="jspsych/plugin-image-keyboard-response.js"></script>
+    <script src="jspsych/plugin-audio-button-response.js"></script>
+    <script src="jspsych/plugin-survey-html-form.js"></script>
+    <script src="jspsych/plugin-preload.js"></script>
+
+    <script src="jspsych/extension-mouse-tracking.js"></script>
+    <script src="jspsych/extension-webgazer.js"></script>
+
+    <script src="jspsych/plugin-webgazer-init-camera.js"></script>
+    <script src="jspsych/plugin-webgazer-calibrate.js"></script>
+    <script src="jspsych/plugin-webgazer-validate.js"></script>
+    <link href="jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body></body>
+  <script>
+  
+
+    var jsPsych = initJsPsych({
+      extensions: [
+        {type: jsPsychExtensionMouseTracking},
+        {type: jsPsychExtensionWebgazer}
+      ],
+      on_finish: function() {
+        jsPsych.data.displayData();
+        var result_data = jsPsych.data.get();
+        //the format can be either 'csv' or 'json'.
+        result_data.localSave('csv','result_data.csv');
+      }
+    });
+
+    var timeline = [];
+
+    // Вся эта история про случайный порядок заданий
+    var levels_info = [1,2,3,4,5];
+    var duration_temp = ['short_slow', 'short_fast', 'med_slow', 'med_fast', 'long_slow', 'long_fast']
+
+    /* Randomize array in-place using Durstenfeld shuffle algorithm */
+    function shuffleArray(array) {
+      for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+      }
+      return array;
+    }
+
+    var levels_all = [shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5])];
+    var orders_all = [shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5])];
+
+    var img_name = 'image file name';
+    var audio_name = 'audio file name';
+    var img_order = [];
+    var audio_order = [];
+
+    for (var my_task = 0; my_task < 5; my_task++){
+      task_type_order = shuffleArray(['short_slow', 'short_fast', 'med_slow', 'med_fast', 'long_slow', 'long_fast']);
+
+      for (var my_task_type = 0; my_task_type < 6; my_task_type++){
+        to_search = task_type_order[my_task_type];
+        type_index = duration_temp.indexOf(to_search);
+        img_name = 'img/' + task_type_order[my_task_type] + '/' + orders_all[type_index][my_task] + '/' + levels_all[type_index][my_task]+ '.png';
+        audio_name = 'audio/' + task_type_order[my_task_type] + '/' + orders_all[type_index][my_task] + '.mp3';
+        img_order.push(img_name);
+        audio_order.push(audio_name);
+      }
+    }
+    
+    var preload = {
+      type: jsPsychPreload,
+      images: img_order,
+      audio : audio_order
+    };
+    timeline.push(preload);
+
+
+    var welcome = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: "Cпасибо, что согласились принять участие в нашем эксперименте.<br> Чтобы продолжить нажмите любую клавишу."
+    };
+    timeline.push(welcome);
+    
+    var instructions = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+      <p>Сперва нам потребуется включить и настроить нашу камеру. Как это сделать, будет написано дальше.</p>                  <p>После успешной настройки Вам надо будет выполнить несколько заданий.</p>
+      <p>В каждом задании будет звучать какая-то мелодия, которая внезапно остановится.</p>
+      <p>Для каждой мелодии будет показана её запись. Это может быть обычная или "испорченная" нотная запись.</p>
+      <p>В "испорченной" записи могли пропасть длительности или высота ноты, или и то, и другое.</p>
+      <p>А иногда ноты будут записаны просто буквами.</p>
+      <p>Какой бы ни была запись, после окончания мелодии Вам нужно постараться определить на какой ноте она закончилась</p>
+      <p>и щелкнуть по ней мышкой. Будьте внимательны - в каждом задании можно ответить только 1 раз!</p>
+      <p>Между заданиями будет появляться изображения крестика - в это время ничего не надо делать, он сам пропадет через несколько секунд.</p>
+      <p>Если Вам все понятно и Вы готовы начать нажмите любую клавишу.</p>`,
+    };
+    timeline.push(instructions);
+
+    var camera_instructions = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+          <p>Для проведения эксперимента нам нужно использовать камеру.</p>
+          <p>При появлении запроса на доступ к камере, нажмите "Разрешить".</p>
+          <p>Включение камеры может занять какое-то время. Пожалуйста, подождите.</p>
+        `,
+      choices: ['Понятно'],
+    }
+    timeline.push(camera_instructions);
+
+    var init_camera = {
+      type: jsPsychWebgazerInitCamera
+    }
+    timeline.push(init_camera);
+
+    var calibration_instructions = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <p>Теперь мы будем настраивать камеру. На экране будут появляться точки.</p>
+        <p>Посмотрите внимательно на каждую точку и нажимайте на них мышкой.</p>
+      `,
+      choices: ['Понятно'],
+    }
+    timeline.push(calibration_instructions);
+    
+    var calibration = {
+      type: jsPsychWebgazerCalibrate,
+      calibration_points: [
+        [25,25],[75,25],[50,50],[25,75],[75,75]
+      ],
+      repetitions_per_point: 2,
+      randomize_calibration_order: true
+    }
+    timeline.push(calibration);
+
+    var validation_instructions = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <p>Проверим хорошо ли настроилась наша камера.</p>
+        <p>Посмотрите ещё раз на точки.</p>
+        <p style="font-weight: bold;">Сейчас НЕ нужно нажимать на точки. Просто посмотрите на них.</p>
+        `,
+      choices: ['Понятно'],
+      post_trial_gap: 1000
+    }
+    timeline.push(validation_instructions);
+
+    var validation = {
+      type: jsPsychWebgazerValidate,
+      validation_points: [
+        [25,25],[75,25],[50,50],[25,75],[75,75]
+        ],
+      roi_radius: 200,
+      time_to_saccade: 1000,
+      validation_duration: 2000,
+      data: {
+        task: 'validate'
+      }
+    }
+    timeline.push(validation);
+
+    var recalibrate_instructions = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <p>Упс...камера настроилась не очень хорошо.</p>
+        <p>Попробуйте, пожалуйста, ещё раз.</p>
+        <p>Смотрите на точки и нажимайте на них.<p>
+      `,
+      choices: ['OK'],
+    }
+
+    var recalibrate = {
+      timeline: [recalibrate_instructions, calibration, validation_instructions, validation],
+      conditional_function: function(){
+        var validation_data = jsPsych.data.get().filter({task: 'validate'}).values()[0];
+        return validation_data.percent_in_roi.some(function(x){
+          var minimum_percent_acceptable = 50;
+          return x < minimum_percent_acceptable;
+        });
+      },
+        data: {
+          phase: 'recalibration'
+        }
+      }
+    timeline.push(recalibrate);
+
+    var calibration_done = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <p>Ура! Мы справились с настройкой.</p>
+        `,
+       choices: ['Перейти к заданиям.']
+    }
+    timeline.push(calibration_done);
+
+    // вот тут можно заменить с плюсика на следующая мелодия
+    var fixation = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: '<p style="font-size:40px;">Следующая мелодия</p>',
+      choices: ['OK']
+      //trial_duration: 5000,
+    };
+
+    // Change here 3 to 30!!!!!
+    for (var make_trial = 0; make_trial < 30; make_trial++){
+
+      var test = { type: jsPsychAudioButtonResponse,
+        stimulus: audio_order[make_trial],
+        //stimulus: 'audio/short_fast/1.mp3',
+        choices: [img_order[make_trial]],
+        //вот тут изменила на false, чтобы можно было ответить только когда мелодия доиграет
+        response_allowed_while_playing: false, 
+        button_html: '<img src="%choice%", id="target" />',
+        extensions: [
+          {type: jsPsychExtensionMouseTracking, params: {targets: ['#target'], events: ['mousedown']}},
+          {type: jsPsychExtensionWebgazer, params: {targets: ['#target']}}
+        ],
+        data: {
+          task: 'response',
+          image_opt: img_order[make_trial]
+        }
+      }
+
+      timeline.push(fixation);
+      timeline.push(test);
+    }
+
+    var personal_info = {
+      type: jsPsychSurveyHtmlForm,
+      //preambule: '<p> Please tell about yourself </p>',
+      //preambule: '<p> Пожалуйста, расскажи немного про себя </p>',
+      html: '<p> Пожалуйста, расскажи немного о себе. <br> Я  - (мальчик/девочка) <input name="sex" type = "text"/>, мне <input name="age" type = "text"> лет.<br> Я играю на <input name="tool" type = "text"> и учусь музыке уже <input name="experience" type = "text"> лет</p>'
+    };
+    timeline.push(personal_info);
+
+    var test_info = {
+      type: jsPsychSurveyHtmlForm,
+      html: '<p>  Результаты тестов на слух (вводятся черзе точку с запятой)  <input name="pitch" type = "text"/> <br> Результаты тест по чтению <input name="reading" type = "text"> <br> Спасибо за участие в эксперименте !</p>'
+    };
+    timeline.push(test_info);
+
+
+    jsPsych.run(timeline);
+  </script>
+</html>
