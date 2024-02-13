@@ -89,25 +89,19 @@
 
     var welcome = {
       type: jsPsychHtmlKeyboardResponse,
-      stimulus: "Cпасибо, что согласились принять участие в нашем эксперименте.<br> Чтобы продолжить нажмите любую клавишу."
+      stimulus: "<p>Cпасибо, что согласились принять участие в нашем эксперименте.</p> <p><i>Чтобы продолжить нажмите любую клавишу.</i></p>"
     };
     timeline.push(welcome);
     
     var instructions = {
       type: jsPsychHtmlKeyboardResponse,
       stimulus: `
-      <p>Сперва нам потребуется включить и настроить нашу камеру. Как это сделать, будет написано дальше.</p>                  <p>После успешной настройки Вам надо будет выполнить несколько заданий.</p>
-      <p>В каждом задании будет звучать какая-то мелодия, которая внезапно остановится.</p>
-      <p>Для каждой мелодии будет показана её запись. Это может быть обычная или "испорченная" нотная запись.</p>
-      <p>В "испорченной" записи могли пропасть длительности или высота ноты, или и то, и другое.</p>
-      <p>А иногда ноты будут записаны просто буквами.</p>
-      <p>Какой бы ни была запись, после окончания мелодии Вам нужно постараться определить на какой ноте она закончилась</p>
-      <p>и щелкнуть по ней мышкой. Будьте внимательны - в каждом задании можно ответить только 1 раз!</p>
-      <p>Между заданиями будет появляться изображения крестика - в это время ничего не надо делать, он сам пропадет через несколько секунд.</p>
-      <p>Если Вам все понятно и Вы готовы начать нажмите любую клавишу.</p>`,
+      <p>Сперва нам потребуется включить и настроить нашу камеру. Как это сделать, будет написано дальше. </p>
+      <p><i>Чтобы продолжить нажмите любую клавишу.</i></p>`,
     };
     timeline.push(instructions);
-
+    
+    // настройка web-камеры 
     var camera_instructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -194,17 +188,24 @@
         }
       }
     timeline.push(recalibrate);
-
+    
     var calibration_done = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <p>Ура! Мы справились с настройкой.</p>
+        <p>Теперь Вам нужно выполнить несколько заданий. </p>
+      <p>В каждом задании будет звучать какая-то мелодия, которая <b>внезапно</b> остановится.</p>
+      <p>Для каждой мелодии будет показана её запись. Это может быть обычная или "испорченная" нотная запись.</br>
+      В "испорченной" записи могли пропасть длительности или высота ноты, или и то, и другое.
+      А иногда ноты будут записаны просто буквами.</p>
+      <p>Какой бы ни была запись, после окончания мелодии</br>Вам нужно постараться определить на какой ноте она закончилась
+      и щелкнуть по ней мышкой. </p>
+      <p>Будьте внимательны - в каждом задании <b>можно ответить только 1 раз!</b></p>
         `,
-       choices: ['Перейти к заданиям.']
+       choices: ['Перейти к заданиям']
     }
     timeline.push(calibration_done);
 
-    // вот тут можно заменить с плюсика на следующая мелодия
     var fixation = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<p style="font-size:40px;">Следующая мелодия</p>',
@@ -212,12 +213,14 @@
       //trial_duration: 5000,
     };
 
-    // Change here 3 to 30!!!!!
+    // цикл для проигрывания мелодий
+    // Change here 3 to 30!!!!! Количество повторов
     for (var make_trial = 0; make_trial < 30; make_trial++){
 
       var test = { type: jsPsychAudioButtonResponse,
         stimulus: audio_order[make_trial],
         //stimulus: 'audio/short_fast/1.mp3',
+        prompt: `<p>Мелодия № ${make_trial + 1} </p>`,
         choices: [img_order[make_trial]],
         //вот тут изменила на false, чтобы можно было ответить только когда мелодия доиграет
         response_allowed_while_playing: false, 
@@ -235,18 +238,27 @@
       timeline.push(fixation);
       timeline.push(test);
     }
-
+    
     var personal_info = {
       type: jsPsychSurveyHtmlForm,
       //preambule: '<p> Please tell about yourself </p>',
       //preambule: '<p> Пожалуйста, расскажи немного про себя </p>',
-      html: '<p> Пожалуйста, расскажи немного о себе. <br> Я  - (мальчик/девочка) <input name="sex" type = "text"/>, мне <input name="age" type = "text"> лет.<br> Я играю на <input name="tool" type = "text"> и учусь музыке уже <input name="experience" type = "text"> лет</p>'
+      html: '<p> Пожалуйста, расскажи немного о себе. <br> Я  <select name="sex"> \
+         <option value="мальчик">мальчик</option> <option value="девочка">девочка</option></select>, \
+         мне <input name="age" type = "text" required> лет.<br> Я играю на <input name="tool" type = "text" required> \
+          и учусь музыке уже <input name="experience" type = "text" required> лет(года) </p>',
+      button_label: ['Далее']
     };
     timeline.push(personal_info);
 
     var test_info = {
       type: jsPsychSurveyHtmlForm,
-      html: '<p>  Результаты тестов на слух (вводятся черзе точку с запятой)  <input name="pitch" type = "text"/> <br> Результаты тест по чтению <input name="reading" type = "text"> <br> Спасибо за участие в эксперименте !</p>'
+      html:  `<p>  Результаты тестов на слух: </br> 
+         Тест 1  <input name="pitch1" type = "text" required> <br> \
+         Тест 2  <input name="pitch2" type = "text" required> <br> \
+         Результаты теста по чтению <input name="reading" type = "text" required> </p> 
+         <p><b>Спасибо за участие в эксперименте! </b></p>`,
+      button_label: ['Завершить тестирование']
     };
     timeline.push(test_info);
 
