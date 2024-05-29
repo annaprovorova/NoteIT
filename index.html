@@ -61,6 +61,14 @@
     centeredText.innerHTML = text;
     document.body.appendChild(centeredText);
   }
+
+  // сохранить данные на сервер
+  function saveData(name, data){
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'write_data.php'); // 'write_data.php' is the path to the php file described above.
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.send(JSON.stringify({filedata: data}));
+}
    
 
 // Experiment-wide settings
@@ -118,7 +126,8 @@
         };
         */
         // сохраним результат на локальный компьютер ('csv' или 'json')
-        jsPsych.data.get().localSave('json','result_data.json');
+        // jsPsych.data.get().localSave('json','result_data.json');
+        saveData(jsPsych.data.get().json());
 
         // на последней станице выведем результат
         let finalText = `<p><b>Ваш результат (средняя ошибка в ответе, в количестве нот):</b> </p>
