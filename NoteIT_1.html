@@ -7,7 +7,6 @@
     <script src="js/webgazer/webgazer.js"></script>
     <!--в файлике ниже содержится информация о целевых значениях для каждой мелодии-->
     <script src="js/targets.js"></script> 
-    <script src="js/true_info.js"></script>
 
     <script src="jspsych/jspsych.js"></script>
     <script src="jspsych/plugin-html-keyboard-response.js"></script>
@@ -16,7 +15,6 @@
     <script src="jspsych/plugin-audio-button-response.js"></script>
     <script src="jspsych/plugin-survey-html-form.js"></script>
     <script src="jspsych/plugin-preload.js"></script>
-    <script src="jspsych/plugin-call-function.js"></script>
 
     <script src="jspsych/extension-mouse-tracking.js"></script>
     <script src="jspsych/extension-webgazer.js"></script>
@@ -28,140 +26,50 @@
   </head>
   <body></body>
   <script>
+  
 
-    //пользовательские функции
-    // Функция для подсчета Евклидова расстояния
-    function calculateDistance(x1, y1, x2, y2) {
-      return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    };
-   
-    // Функция для нахождения индекса ближайшей ноты от клика респондента координаты 
-    function findClosestCoordinate(clickX, clickY, TrueCoords) {
-     let minDistance = Infinity;
-     closestCoord_index = null;
-
-     let my_index = 0;
-     for (my_index = 0; my_index < TrueCoords.length; ++my_index) {
-        let distance = calculateDistance(clickX, clickY, TrueCoords[my_index].x, TrueCoords[my_index].y);
-        if (distance < minDistance) {
-           minDistance = distance;
-           closestCoord_index = my_index;
-         };
-     };
-     return closestCoord_index
-   };
-
-     // функция для вывода результата в конце эксперимента
-    function displayResult(text) {
-    const centeredText = document.createElement('div');
-    centeredText.style.position = 'absolute';
-    centeredText.style.top = '50%';
-    centeredText.style.left = '50%';
-    centeredText.style.transform = 'translate(-50%, -50%)';
-    centeredText.innerHTML = text;
-    document.body.appendChild(centeredText);
-  }
-   
-
-// Experiment-wide settings
-    let jsPsych = initJsPsych({
+    var jsPsych = initJsPsych({
       extensions: [
         {type: jsPsychExtensionMouseTracking},
         {type: jsPsychExtensionWebgazer}
       ],
-      on_finish: function(data) {
-        // сохраним данные в переменную result_data. Почему-то нормально работает только если конвертировать в json и обратно
-        let result_data = JSON.parse(jsPsych.data.get().json());
-        // создадим переменные, где будем копить среднюю ошибку (в нотах)
-        let mistake = 0; // общая ошибка
-        let mistakeByType = [0, 0, 0, 0, 0];
-        let numberOfTrials = 0; // количество ответов 
-        let numberOfTrialsByType = [0, 0, 0, 0, 0];
-        // отберём только данные по "audio-button-response"
-        for (let i = 0; i < result_data.length; i++) {
-          if (result_data[i].trial_type === "audio-button-response") {
-            imgToFind = result_data[i].image_opt;
-            // найдём истинные координаты всех нот на картинке
-            let filteredInfo = true_info.filter(function(item)
-                {
-                  return item.img_opt === imgToFind;
-                });
-            // сохраним координаты нот с текущей картинки
-            let TrueCoords = JSON.parse((filteredInfo[0].true_coords).replace(/'/g, '"'));
-            // сохраним индекс верной ноты
-            let TrueIndex = filteredInfo[0].answer - 1;
-            // найдем тип мелодии, которую сейчас проигрывали
-            let melodyType = filteredInfo[0].type;
-            // найдём координаты клика
-            let left = result_data[i].mouse_tracking_targets['#target'].left;
-            let top = result_data[i].mouse_tracking_targets['#target'].top;
-            let x = result_data[i].mouse_tracking_data[0].x - left;
-            let y = result_data[i].mouse_tracking_data[0].y - top;
-            // найдём номер ноты, в которую кликнули
-            let closestCoord_index = findClosestCoordinate(x, y, TrueCoords);
-            // пока суммируем ошибку, потом поделим её на количество trials
-            mistake += Math.abs((TrueIndex) - closestCoord_index);
-            numberOfTrials++;
-            // а теперь ошибка по типам мелодий
-            mistakeByType[parseInt(melodyType) - 1] += Math.abs((TrueIndex) - closestCoord_index);
-            numberOfTrialsByType[parseInt(melodyType) - 1] += 1;
-          }
-        };
-        /* проверка результата через консоль
-        console.log('Суммарная ошибка:', Math.round(mistake/numberOfTrials));
-        for (let i = 0; i < 5; i++) {
-          if (numberOfTrialsByType[i] > 0) {
-            console.log(`Ошибка ${i + 1} типа: `, Math.round(mistakeByType[i]/numberOfTrialsByType[i]));
-          } else{
-            console.log(`Ошибка ${i + 1} типа: - `);
-          }
-        };
-        */
-        // сохраним результат на локальный компьютер ('csv' или 'json')
-        jsPsych.data.get().localSave('json','result_data.json');
-
-        // на последней станице выведем результат
-        let finalText = `<p><b>Ваш результат (средняя ошибка в ответе, в количестве нот):</b> </p>
-        Средняя ошибка: ${Math.round(mistake/numberOfTrials)} <br>
-        Классическая нотная запись: ${(numberOfTrialsByType[0] > 0) ? Math.round(mistakeByType[0]/numberOfTrialsByType[0]) : '-'} <br>
-        Запись без высот нот: ${(numberOfTrialsByType[1] > 0) ? Math.round(mistakeByType[1]/numberOfTrialsByType[1]) : '-'} <br>
-        Запись без длительностей нот: ${(numberOfTrialsByType[2] > 0) ? Math.round(mistakeByType[2]/numberOfTrialsByType[2]): '-'} <br>
-        Ноты обозначены точками: ${(numberOfTrialsByType[3] > 0) ? Math.round(mistakeByType[3]/numberOfTrialsByType[3]) : '-'} <br>
-        Ноты обозначены словами: ${(numberOfTrialsByType[4] > 0) ? Math.round(mistakeByType[4]/numberOfTrialsByType[4]) : '-'} <br>`;
-        displayResult(finalText)
+      on_finish: function() {
+        jsPsych.data.displayData();
+        var result_data = jsPsych.data.get();
+        //the format can be either 'csv' or 'json'.
+        result_data.localSave('json','result_data.json');
       }
     });
-  
 
-    // Создадим случайный порядок заданий
-    let levels_info = [1,2,3,4,5];
-    let duration_temp = ['short_slow', 'short_fast', 'med_slow', 'med_fast', 'long_slow', 'long_fast']
+    var timeline = [];
+
+    // Вся эта история про случайный порядок заданий
+    var levels_info = [1,2,3,4,5];
+    var duration_temp = ['short_slow', 'short_fast', 'med_slow', 'med_fast', 'long_slow', 'long_fast']
 
     /* Randomize array in-place using Durstenfeld shuffle algorithm */
     function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1));
-        let temp = array[i];
+      for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
         array[i] = array[j];
         array[j] = temp;
       }
       return array;
     }
 
-    let levels_all = [shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5])];
-    let orders_all = [shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5])];
+    var levels_all = [shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5])];
+    var orders_all = [shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5]),shuffleArray([1,2,3,4,5])];
 
-    let timeline = [];
-    
-    let img_name = 'image file name';
-    let audio_name = 'audio file name';
-    let img_order = [];
-    let audio_order = [];
+    var img_name = 'image file name';
+    var audio_name = 'audio file name';
+    var img_order = [];
+    var audio_order = [];
 
-    for (let my_task = 0; my_task < 5; my_task++){
+    for (var my_task = 0; my_task < 5; my_task++){
       task_type_order = shuffleArray(['short_slow', 'short_fast', 'med_slow', 'med_fast', 'long_slow', 'long_fast']);
 
-      for (let my_task_type = 0; my_task_type < 6; my_task_type++){
+      for (var my_task_type = 0; my_task_type < 6; my_task_type++){
         to_search = task_type_order[my_task_type];
         type_index = duration_temp.indexOf(to_search);
         img_name = 'img/' + task_type_order[my_task_type] + '/' + orders_all[type_index][my_task] + '/' + levels_all[type_index][my_task]+ '.png';
@@ -171,32 +79,30 @@
       }
     }
     
-    let preload = {
+    var preload = {
       type: jsPsychPreload,
       images: img_order,
       audio : audio_order
     };
     timeline.push(preload);
 
-    
 
-    let welcome = {
+    var welcome = {
       type: jsPsychHtmlKeyboardResponse,
       stimulus: "<p>Cпасибо, что согласились принять участие в нашем эксперименте.</p> <p><i>Чтобы продолжить нажмите любую клавишу.</i></p>"
     };
     timeline.push(welcome);
-    
-    let instructions = {
+    /*
+    var instructions = {
       type: jsPsychHtmlKeyboardResponse,
       stimulus: `
       <p>Сперва нам потребуется включить и настроить нашу камеру. Как это сделать, будет написано дальше. </p>
       <p><i>Чтобы продолжить нажмите любую клавишу.</i></p>`,
     };
     timeline.push(instructions);
-
-    /*
+    
     // настройка web-камеры 
-    let camera_instructions = {
+    var camera_instructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
           <p>Для проведения эксперимента нам нужно использовать камеру.</p>
@@ -207,12 +113,12 @@
     }
     timeline.push(camera_instructions);
 
-    let init_camera = {
+    var init_camera = {
       type: jsPsychWebgazerInitCamera
     }
     timeline.push(init_camera);
 
-    let calibration_instructions = {
+    var calibration_instructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <p>Теперь мы будем настраивать камеру. На экране будут появляться точки.</p>
@@ -222,7 +128,7 @@
     }
     timeline.push(calibration_instructions);
     
-    let calibration = {
+    var calibration = {
       type: jsPsychWebgazerCalibrate,
       calibration_points: [
         [25,25],[75,25],[50,50],[25,75],[75,75]
@@ -232,7 +138,7 @@
     }
     timeline.push(calibration);
 
-    let validation_instructions = {
+    var validation_instructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <p>Проверим хорошо ли настроилась наша камера.</p>
@@ -244,7 +150,7 @@
     }
     timeline.push(validation_instructions);
 
-    let validation = {
+    var validation = {
       type: jsPsychWebgazerValidate,
       validation_points: [
         [25,25],[75,25],[50,50],[25,75],[75,75]
@@ -258,7 +164,7 @@
     }
     timeline.push(validation);
 
-    let recalibrate_instructions = {
+    var recalibrate_instructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <p>Упс...камера настроилась не очень хорошо.</p>
@@ -268,12 +174,12 @@
       choices: ['OK'],
     }
 
-    let recalibrate = {
+    var recalibrate = {
       timeline: [recalibrate_instructions, calibration, validation_instructions, validation],
       conditional_function: function(){
-        let validation_data = jsPsych.data.get().filter({task: 'validate'}).values()[0];
+        var validation_data = jsPsych.data.get().filter({task: 'validate'}).values()[0];
         return validation_data.percent_in_roi.some(function(x){
-          let minimum_percent_acceptable = 50;
+          var minimum_percent_acceptable = 50;
           return x < minimum_percent_acceptable;
         });
       },
@@ -282,9 +188,9 @@
         }
       }
     timeline.push(recalibrate);
-  
+    */
 
-    let calibration_done = {
+    var calibration_done = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <p>Ура! Мы справились с настройкой.</p>
@@ -300,9 +206,8 @@
        choices: ['Перейти к заданиям']
     }
     timeline.push(calibration_done);
-    */
 
-    let fixation = {
+    var fixation = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<p style="font-size:40px;">Следующая мелодия</p>',
       choices: ['OK']
@@ -310,37 +215,33 @@
     };
 
     // цикл для проигрывания мелодий
-    // Change here to 30!!!!! Количество повторов
-    let numberOfTrials = 10;
-    for (let make_trial = 0; make_trial < numberOfTrials; make_trial++) {
+    // Change here 3 to 30!!!!! Количество повторов
+    for (var make_trial = 0; make_trial < 1; make_trial++){
 
-      // найдем истинную инфу о картинке, которая отображается
-      let imgToFind = img_order[make_trial]; // Specify the img_opt you are interested in
-      
-      // console.log('Правильные координаты', filteredInfo);
-      let test = {
-        type: jsPsychAudioButtonResponse,
+      var test = { type: jsPsychAudioButtonResponse,
         stimulus: audio_order[make_trial],
+        //stimulus: 'audio/short_fast/1.mp3',
         prompt: `<p>Мелодия № ${make_trial + 1} </p>`,
         choices: [img_order[make_trial]],
-        response_allowed_while_playing: true, //false,
-        button_html: '<img src="%choice%" id="target" />',
+        //вот тут изменила на false, чтобы можно было ответить только когда мелодия доиграет
+        response_allowed_while_playing: false, 
+        button_html: '<img src="%choice%", id="target" />',
+  
         extensions: [
           {type: jsPsychExtensionMouseTracking, params: {targets: ['#target'], events: ['mousedown']}},
-         // {type: jsPsychExtensionWebgazer, params: {targets: ['#target']}}
+          {type: jsPsychExtensionWebgazer, params: {targets: ['#target']}}
         ],
         data: {
           task: 'response',
           image_opt: img_order[make_trial]
-        },
-        };
+        }
+      }
 
       timeline.push(fixation);
       timeline.push(test);
-      };
+    }
     
-/*
-    let personal_info = {
+    var personal_info = {
       type: jsPsychSurveyHtmlForm,
       //preambule: '<p> Please tell about yourself </p>',
       //preambule: '<p> Пожалуйста, расскажи немного про себя </p>',
@@ -352,7 +253,7 @@
     };
     timeline.push(personal_info);
 
-    let test_info = {
+    var test_info = {
       type: jsPsychSurveyHtmlForm,
       html:  `<p>  Результаты тестов на слух: </br> 
          Тест 1  <input name="pitch1" type = "text" required> <br> \
@@ -362,7 +263,8 @@
       button_label: ['Завершить тестирование']
     };
     timeline.push(test_info);
-*/
+
+
     jsPsych.run(timeline);
   </script>
 </html>
